@@ -1,0 +1,68 @@
+services:
+
+##################--Ansible_Semaphore--##################
+  semaphore:
+    image: docker.io/semaphoreui/semaphore:v2.9.64
+    container_name: semaphore
+    restart: always
+    user: "${UID}:${GID}"
+    environment:
+      - SEMAPHORE_DB_USER=semaphore
+      - SEMAPHORE_DB_PASS=secret-password  # change!
+      - SEMAPHORE_DB_HOST=mysql # for postgres, change to: postgre
+      - SEMAPHORE_DB_PORT=3306 # change to 5432 for postgres
+      - SEMAPHORE_DB_DIALECT=mysql # for postgres, change to: postgres
+      - SEMAPHORE_DB=semaphore
+      - SEMAPHORE_PLAYBOOK_PATH=/tmp/semaphore/
+      - SEMAPHORE_ADMIN_PASSWORD=secret-admin-password  # change!
+      - SEMAPHORE_ADMIN_NAME=admin
+      - SEMAPHORE_ADMIN_EMAIL=admin@localhost
+      - SEMAPHORE_ADMIN=admin
+      - SEMAPHORE_ACCESS_KEY_ENCRYPTION=  # generate it with "head -c32 /dev/urandom | base64"
+      - ANSIBLE_HOST_KEY_CHECKING=false  # (optional) change to true if you want to enable host key checking
+    volumes:
+      - ./inventory/:/inventory:ro
+      - ./authorized-keys/:/authorized-keys:ro
+      - ./config/:/etc/semaphore:rw
+    ports:
+      - 3000:3000
+    depends_on:
+      - mysql # for postgres, change to: postgres
+    networks:
+      - network
+
+  # uncomment this section and comment out the mysql section to use postgres instead of mysql
+  # postgres:
+  #   image: postgres:14
+  #   container_name: postgres
+  #   restart: always
+  #   volumes: 
+  #    - ./pgdata_semaphore:/var/lib/postgresql/data
+  #   environment:
+  #    - POSTGRES_USER=semaphore
+  #    - POSTGRES_PASSWORD=secret-password  # change!
+  #    - POSTGRES_DB=semaphore
+  #   networks:
+  #     - network
+  # if you wish to use postgres, comment the mysql service section below 
+
+  mysql:
+    image: docker.io/library/mysql:8.3
+    container_name: mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret-password  # change!
+      - MYSQL_DATABASE=semaphore
+      - MYSQL_USER=semaphore
+      - MYSQL_PASSWORD=secret-password  # change!
+    volumes:
+      - ./mysqldata_semaphore:/var/lib/mysql
+    networks:
+      - network
+
+###########################################################
+
+networks:
+  network:
+    name: semaphore
+    external: false
