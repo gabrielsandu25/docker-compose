@@ -1,0 +1,188 @@
+services:
+
+################--GRAFANA--################
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    user: root
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.example.com} # Also you can setupe grafana as subdirectory [https://example.com/grafana]
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=secret-password  # change!
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=watch_db
+      - GF_DATABASE_USER=watch
+      - GF_DATABASE_PASSWORD=secret-password  # change!
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp_host:smtp_port
+      - GF_SMTP_SSL_MODE=smtp
+      - GF_SMTP_USER=smtp_user
+      - GF_SMTP_PASSWORD=smtp_password
+      - GF_SMTP_FROM_ADDRESS=smtp_from_address
+      - GF_SMTP_FROM_NAME=smtp_from_name
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=keycloak_grafana_id
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=keycloak_client_seacret
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/userinfo
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+    ports:
+      - 3000:3000
+    networks:
+      - network
+###########################################
+
+###############--POSTGRESQL--##############
+  # Postgres db
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=watch
+      - POSTGRES_PASSWORD=secret-password  # change!
+      - POSTGRES_DB=watch_db
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - network
+###########################################
+
+############--PROMETHEUS Bulk--############
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    networks:
+      - network
+
+  # Node-exporter
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - 9100:9100
+    networks:
+      - network
+
+  # Postgres-exporter
+  postgres-exporter:
+    image: wrouesnel/postgres_exporter:latest
+    container_name: postgres-exporter
+    restart: always
+    environment:
+      - DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable
+    ports:
+      - 9187:9187
+    networks:
+      - network # Use this if you want to access docker PostgreSQL (DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable)
+
+    #network_mode: host # Use this if you want to access local PostgreSQL (DATA_SOURCE_NAME=postgresql://watch:secret-password@localhost:5432/watch_db?sslmode=disable"). 
+    # Don't forget to edit:
+    # - pg_hba.conf (host    all             all             172.17.0.0/16           md5)
+    # - postgresql.conf (listen_addresses = '*')
+
+  # JMX-exporter
+  jmx-exporter:
+    image: dcagatay/hadoop-jmx-exporter:latest
+    container_name: jmx-exporter
+    restart: always
+    ports:
+      - 6688:6688
+    networks:
+      - network
+
+  # CadVisor
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest    
+    container_name: cadvisor
+    restart: always
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    privileged: true
+    ports:
+      - 8080:8080
+    networks:
+      - network
+
+# Blackbox-exporter
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox
+    restart: always
+    command: --config.file=/etc/blackbox_exporter/config.yml
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
+    ports:
+      - 9115:9115
+    networks:
+      - network
+###########################################
+
+###############--LOKI Bulk--###############
+  # Loki
+  loki:
+    image: grafana/loki:2.4.0
+    container_name: loki
+    restart: always
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki:/etc/loki
+    ports:
+      - 3100:3100
+    networks:
+      - network
+
+  # Promtail
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: always
+    volumes:
+      - /var/log:/var/log
+      - ./promtail:/etc/promtail
+    ports:
+      - 1514:1514
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - network
+
+###########################################
+
+
+networks:
+  network:
+    name: watch
+    external: false
