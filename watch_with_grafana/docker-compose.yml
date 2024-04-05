@@ -6,7 +6,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: always
-    user: root
+    user: "1000"
     environment:
       - GF_SERVER_ROOT_URL=https://grafana.example.com} # Also you can setupe grafana as subdirectory [https://example.com/grafana]
       - GF_SECURITY_ADMIN_USER=admin
@@ -178,7 +178,24 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - network
+###########################################
 
+#################--NGINX--#################
+  # Nginx
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/error.log:/var/log/nginx/error.log
+      - ./nginx/access.log:/var/log/nginx/access.log
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - network
 ###########################################
 
 
