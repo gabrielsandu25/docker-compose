@@ -1,4 +1,16 @@
 # Monitoring your server with Grafana
+## You will find in Grafana -> Dashboard -> Watch, useful informations about:
+* **Website** (Status, SSL, Http Duration)
+* **System** (System Uptime, RAM, Disk Storage, CPU, Network Trafic, etc.)
+* **Docker** (Running Containers, CPU Usage, Recived and Sent Network Trafic)
+* **PostgreSQL** (Version, Active Sessions, Transactions, Fetch Data, Insert Data, etc.) 
+
+<br>
+
+![Grafana - Dashboard](./.images/1.png) <br>
+![Grafana - Dashboard](./.images/2.png) <br>
+
+<br>
 
 ## To deploy this project, follow this steps: <br>
 1. Edit `setup.env` file with your specific cinfiguration <br>
