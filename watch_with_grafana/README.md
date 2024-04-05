@@ -11,13 +11,17 @@ nano setup.env
 ``` -d
 cp setup.env .env
 ```
+3. Edit `prometheus/prometheus.yml` file. Just replace `example.com` with your specific configuration <br>
+``` -d
+nano prometheus/prometheus.yml
+```
 
-3. Edit `nginx.conf` file to setup Nginx configuration <br>
+4. Edit `nginx.conf` file to setup Nginx configuration. Just replace `example.com` with your specific configuration <br>
 ``` -d
 nano nginx/nginx.conf
 ```
 
-4. Run docker containers <br>
+5. Run docker containers <br>
 ``` -d
 docker compose up -d
 ```
