@@ -8,29 +8,21 @@ services:
     restart: always
     user: root
     environment:
-      - GF_SERVER_ROOT_URL=https://grafana.example.com} # Also you can setupe grafana as subdirectory [https://example.com/grafana]
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=secret-password  # change!
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL}
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_DATABASE_TYPE=postgres
       - GF_DATABASE_HOST=postgres:5432
-      - GF_DATABASE_NAME=watch_db
-      - GF_DATABASE_USER=watch
-      - GF_DATABASE_PASSWORD=secret-password  # change!
-      - GF_SMTP_ENABLED=true
-      - GF_SMTP_HOST=smtp_host:smtp_port
-      - GF_SMTP_SSL_MODE=smtp
-      - GF_SMTP_USER=smtp_user
-      - GF_SMTP_PASSWORD=smtp_password
-      - GF_SMTP_FROM_ADDRESS=smtp_from_address
-      - GF_SMTP_FROM_NAME=smtp_from_name
-      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
-      - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=keycloak_grafana_id
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=keycloak_client_seacret
-      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile
-      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/auth
-      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/token
-      - GF_AUTH_GENERIC_OAUTH_API_URL=https://${KC_URL}/realms/${KC_REALM}/protocol/openid-connect/userinfo
+      - GF_DATABASE_NAME=${POSTGRES_DB}
+      - GF_DATABASE_USER=${POSTGRES_USER}
+      - GF_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      # - GF_SMTP_ENABLED=${}
+      # - GF_SMTP_HOST=smtp_host:smtp_port
+      # - GF_SMTP_SSL_MODE=${}
+      # - GF_SMTP_USER=${}
+      # - GF_SMTP_PASSWORD=${}
+      # - GF_SMTP_FROM_ADDRESS=${}
+      # - GF_SMTP_FROM_NAME=${}
     volumes:
       - ./grafana/data:/var/lib/grafana
       - ./grafana/dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
@@ -47,9 +39,9 @@ services:
     container_name: postgres
     restart: always
     environment:
-      - POSTGRES_USER=watch
-      - POSTGRES_PASSWORD=secret-password  # change!
-      - POSTGRES_DB=watch_db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
     networks:
@@ -63,7 +55,7 @@ services:
     container_name: prometheus
     restart: always
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./.prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - network
 
@@ -90,14 +82,9 @@ services:
     container_name: postgres-exporter
     restart: always
     environment:
-      - DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
     networks:
-      - network # Use this if you want to access docker PostgreSQL (DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable)
-
-    #network_mode: host # Use this if you want to access local PostgreSQL (DATA_SOURCE_NAME=postgresql://watch:secret-password@localhost:5432/watch_db?sslmode=disable"). 
-    # Don't forget to edit:
-    # - pg_hba.conf (host    all             all             172.17.0.0/16           md5)
-    # - postgresql.conf (listen_addresses = '*')
+      - network
 
   # JMX-exporter
   jmx-exporter:

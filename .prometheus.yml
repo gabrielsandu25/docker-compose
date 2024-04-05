@@ -8,7 +8,7 @@ scrape_configs:
       - targets: ['prometheus:9090']
 
   # Example job for VPS Watch-Node_exporter
-  - job_name: 'example.ro' # You can put here your domain
+  - job_name: '${GF_SERVER_ROOT_URL}' # You can put here your domain
     scrape_interval: 5s
     static_configs:
       - targets: ['node-exporter:9100']
