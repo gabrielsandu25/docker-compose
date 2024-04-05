@@ -6,7 +6,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: always
-    user: "1000"
+    user: root
     environment:
       - GF_SERVER_ROOT_URL=https://grafana.example.com} # Also you can setupe grafana as subdirectory [https://example.com/grafana]
       - GF_SECURITY_ADMIN_USER=admin
@@ -35,8 +35,7 @@ services:
       - ./grafana/data:/var/lib/grafana
       - ./grafana/dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
       - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-    ports:
-      - 3000:3000
+      - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
     networks:
       - network
 ###########################################
@@ -53,8 +52,6 @@ services:
       - POSTGRES_DB=watch_db
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
     networks:
       - network
 ###########################################
@@ -67,8 +64,6 @@ services:
     restart: always
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - 9090:9090
     networks:
       - network
 
@@ -86,8 +81,6 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    ports:
-      - 9100:9100
     networks:
       - network
 
@@ -98,8 +91,6 @@ services:
     restart: always
     environment:
       - DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable
-    ports:
-      - 9187:9187
     networks:
       - network # Use this if you want to access docker PostgreSQL (DATA_SOURCE_NAME=postgresql://watch:secret-password@postgres:5432/watch_db?sslmode=disable)
 
@@ -113,8 +104,6 @@ services:
     image: dcagatay/hadoop-jmx-exporter:latest
     container_name: jmx-exporter
     restart: always
-    ports:
-      - 6688:6688
     networks:
       - network
 
@@ -132,50 +121,17 @@ services:
     devices:
       - /dev/kmsg
     privileged: true
-    ports:
-      - 8080:8080
     networks:
       - network
 
 # Blackbox-exporter
-  blackbox:
+  blackbox-exporter:
     image: prom/blackbox-exporter:latest
-    container_name: blackbox
+    container_name: blackbox-exporter
     restart: always
     command: --config.file=/etc/blackbox_exporter/config.yml
     volumes:
       - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
-    ports:
-      - 9115:9115
-    networks:
-      - network
-###########################################
-
-###############--LOKI Bulk--###############
-  # Loki
-  loki:
-    image: grafana/loki:2.4.0
-    container_name: loki
-    restart: always
-    command: -config.file=/etc/loki/loki-config.yml
-    volumes:
-      - ./loki:/etc/loki
-    ports:
-      - 3100:3100
-    networks:
-      - network
-
-  # Promtail
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
-    restart: always
-    volumes:
-      - /var/log:/var/log
-      - ./promtail:/etc/promtail
-    ports:
-      - 1514:1514
-    command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - network
 ###########################################
